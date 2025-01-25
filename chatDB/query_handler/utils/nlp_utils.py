@@ -1,15 +1,18 @@
 import requests
 import os
 import logging
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-# load_dotenv()  # Load environment variables from a .env file
+load_dotenv()  # Load environment variables from a .env file
 
 # Hugging Face API details
 API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
 API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN") # Get the token from the environment
+
+if not API_TOKEN:
+    raise ValueError("HUGGINGFACE_API_TOKEN is not set in the environment.")
 
 
 headers = {
