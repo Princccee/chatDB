@@ -1,0 +1,10 @@
+django
+djangorestframework
+pandas
+numpy
+transformers
+nltk
+spacy
+requests
+pymysql
+# psycopg2
