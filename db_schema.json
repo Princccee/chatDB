@@ -1,0 +1,112 @@
+{
+    "departments": [
+        {
+            "Field": "id",
+            "Type": "int",
+            "Null": "NO",
+            "Key": "PRI",
+            "Default": null,
+            "Extra": "auto_increment"
+        },
+        {
+            "Field": "name",
+            "Type": "varchar(100)",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "location",
+            "Type": "varchar(100)",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        }
+    ],
+    "employees": [
+        {
+            "Field": "id",
+            "Type": "int",
+            "Null": "NO",
+            "Key": "PRI",
+            "Default": null,
+            "Extra": "auto_increment"
+        },
+        {
+            "Field": "name",
+            "Type": "varchar(100)",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "position",
+            "Type": "varchar(100)",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "joined_date",
+            "Type": "date",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "salary",
+            "Type": "decimal(10,2)",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        }
+    ],
+    "projects": [
+        {
+            "Field": "id",
+            "Type": "int",
+            "Null": "NO",
+            "Key": "PRI",
+            "Default": null,
+            "Extra": "auto_increment"
+        },
+        {
+            "Field": "name",
+            "Type": "varchar(100)",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "start_date",
+            "Type": "date",
+            "Null": "NO",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "end_date",
+            "Type": "date",
+            "Null": "YES",
+            "Key": "",
+            "Default": null,
+            "Extra": ""
+        },
+        {
+            "Field": "department_id",
+            "Type": "int",
+            "Null": "YES",
+            "Key": "MUL",
+            "Default": null,
+            "Extra": ""
+        }
+    ]
+}

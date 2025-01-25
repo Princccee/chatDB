@@ -9,6 +9,7 @@ from django.http import JsonResponse
 import mysql.connector
 from mysql.connector import Error
 from rest_framework.decorators import api_view
+import json
 
 class QueryView(APIView):
     def post(self, request):
@@ -35,7 +36,8 @@ class QueryView(APIView):
 @api_view(['POST'])
 def connect_to_mysql(request):
     """
-    Connect to MySQL database using user-provided credentials and extract schema details.
+    Connect to MySQL database using user-provided credentials, extract schema details, 
+    and save the schema in a file named db_schema.json.
     """
     data = request.data
     host = data.get('host', 'localhost')  # Default to localhost
@@ -69,6 +71,10 @@ def connect_to_mysql(request):
                 cursor.execute(f"DESCRIBE {table_name};")
                 columns = cursor.fetchall()
                 schema_info[table_name] = columns
+
+            # Save the schema to a JSON file
+            with open('db_schema.json', 'w') as json_file:
+                json.dump(schema_info, json_file, indent=4)
 
             return JsonResponse({
                 "message": "Connected to the database successfully!",
