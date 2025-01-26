@@ -10,6 +10,9 @@ load_dotenv()  # Load environment variables from a .env file
 
 # Hugging Face API details
 API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
+# API_URL = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-1B"
+# API_URL = "https://api-inference.huggingface.co/models/codellama/CodeLlama-7b-hf"
+# API_URL = "https://api.deepseek.com/v1/query"
 API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN") # Get the token from the environment
 
 if not API_TOKEN:
@@ -20,13 +23,14 @@ headers = {
     "Authorization": f"Bearer {API_TOKEN}"
 }
 
+# Function to call HF API
 def call_huggingface_api(prompt):
     """
     Send a prompt to the Hugging Face Inference API and return the response.
     """
     payload = {"inputs": prompt}
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=10)
+        response = requests.post(API_URL, headers=headers, json=payload)
         response.raise_for_status()  # Raise an exception for HTTP errors
         result = response.json()
         # Ensure the response has the expected format
@@ -70,6 +74,11 @@ def format_schema(schema):
         schema_details.append(f"Table '{table}': Columns ({', '.join(column_names)})")
     return "\n".join(schema_details)
 
+def extract_sql(response):
+    if "SQL:" in response:
+        return response.split("SQL:")[1].strip().split("\n")[0]
+    return response
+
 
 def process_query(user_query, schema_file="db_schema.json"):
     """
@@ -82,22 +91,23 @@ def process_query(user_query, schema_file="db_schema.json"):
 
     # Refined prompt with schema details and examples
     prompt = (
-        "You are a helpful assistant that generates SQL queries from natural language descriptions. "
-        "You have the following database schema to work with:\n\n"
-        f"{formatted_schema}\n\n"
-        "Example 1:\n"
-        "Question: List all employees who joined in 2022.\n"
-        "SQL: SELECT * FROM employees WHERE join_date BETWEEN '2022-01-01' AND '2022-12-31';\n\n"
-        "Example 2:\n"
-        "Question: Find all customers who made a purchase in December 2023.\n"
-        "SQL: SELECT * FROM customers WHERE purchase_date BETWEEN '2023-12-01' AND '2023-12-31';\n\n"
-        "Now, convert the following question into an SQL query:\n"
-        f"Question: {user_query}\nSQL:"
+    "You are a helpful assistant that generates mySQL queries from natural language descriptions.\n\n"
+    "Here is the database schema:\n"
+    "Table 'departments': Columns (id, name, location)\n"
+    "Table 'employees': Columns (id, name, position, joined_date, salary)\n"
+    "Table 'projects': Columns (id, name, start_date, end_date, department_id)\n\n"
+    "Example 1:\n"
+    "Question: List all employees who joined in 2022.\n"
+    "SQL: SELECT * FROM employees WHERE join_date BETWEEN '2022-01-01' AND '2022-12-31';\n\n"
+    "Now, generate the SQL query for the following question:\n"
+    f"Question: {user_query}\n"
+    "SQL:"
     )
     structured_query = call_huggingface_api(prompt)
+    sql_query = extract_sql(structured_query)
     return {
         "user_query": user_query,
-        "structured_query": structured_query
+        "structured_query": sql_query
     }
 
 def test_process_query():

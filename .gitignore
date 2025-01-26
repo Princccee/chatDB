@@ -23,3 +23,5 @@ Thumbs.db
 
 # Migrations cache (if unnecessary to track migrations at all)
 **/migrations/__pycache__/
+
+test.json

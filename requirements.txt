@@ -10,3 +10,4 @@ pymysql
 # psycopg2
 mysql-connector-python
 python-dotenv
+openai
