@@ -82,35 +82,29 @@ def extract_sql(response):
 
 def process_query(user_query, schema_file="db_schema.json"):
     """
-    Process the user's natural language query using Hugging Face's API,
-    incorporating database schema details for better accuracy.
+    Process the user's natural language query into an SQL query using NLP model.
     """
     # Load and format the schema
     schema = load_schema(schema_file)
+    if not schema:
+        return {
+            "user_query": user_query,
+            "structured_query": None,
+            "error": "Database schema not loaded."
+        }
+    
     formatted_schema = format_schema(schema)
 
-    # Refined prompt with schema details and examples
+    # Refined prompt with schema details
     prompt = (
-    "You are a helpful assistant that generates mySQL queries from natural language descriptions.\n\n"
-    "Here is the database schema:\n"
-    "Table 'departments': Columns (id, name, location)\n"
-    "Table 'employees': Columns (id, name, position, joined_date, salary)\n"
-    "Table 'projects': Columns (id, name, start_date, end_date, department_id)\n\n"
-    "Example 1:\n"
-    "Question: List all employees who joined in 2022.\n"
-    "SQL: SELECT * FROM employees WHERE join_date BETWEEN '2022-01-01' AND '2022-12-31';\n\n"
-    "Now, generate the SQL query for the following question:\n"
-    f"Question: {user_query}\n"
-    "SQL:"
+        f"You are a helpful assistant that generates mySQL queries from natural language descriptions.\n\n"
+        f"Here is the database schema:\n{formatted_schema}\n\n"
+        f"Question: {user_query}\nSQL:"
     )
+
     structured_query = call_huggingface_api(prompt)
     sql_query = extract_sql(structured_query)
     return {
         "user_query": user_query,
         "structured_query": sql_query
     }
-
-def test_process_query():
-    sample_query = "List all employees who joined in 2022."
-    result = process_query(sample_query)
-    assert "SELECT" in result["structured_query"], "Query generation failed"

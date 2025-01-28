@@ -1,9 +1,7 @@
 from django.urls import path
-from .views import QueryView
-from .views import connect_to_mysql
+from .views import QueryView, get_db_connection
 
 urlpatterns = [
     path('api/query/', QueryView.as_view(), name='query'),
-    path('connect-database/', connect_to_mysql, name='connect-database'),
+    path('connect-database/', get_db_connection, name='connect-database'),
 ]
-
