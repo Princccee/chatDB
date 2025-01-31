@@ -3,7 +3,8 @@ import os
 import logging
 import json
 from dotenv import load_dotenv
-
+import time
+import re
 logger = logging.getLogger(__name__)
 
 load_dotenv()  # Load environment variables from a .env file
@@ -24,25 +25,27 @@ headers = {
 }
 
 # Function to call HF API
-def call_huggingface_api(prompt):
-    """
-    Send a prompt to the Hugging Face Inference API and return the response.
-    """
+def call_huggingface_api(prompt, max_retries=3):
     payload = {"inputs": prompt}
-    try:
-        response = requests.post(API_URL, headers=headers, json=payload)
-        response.raise_for_status()  # Raise an exception for HTTP errors
-        result = response.json()
-        # Ensure the response has the expected format
-        if isinstance(result, list) and "generated_text" in result[0]:
-            logger.info(f"API Response: {result}")
-            return result[0]["generated_text"]
-        else:
-            logger.error(f"Unexpected API response format: {result}")
-            return "Error: Unexpected API response format"
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error calling Hugging Face API: {e}")
-        return f"Error: {e}"
+    
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(API_URL, headers=headers, json=payload, timeout=10)
+            response.raise_for_status()
+            result = response.json()
+            print(f"API Response: {result}")  # <== Debug print
+            
+            if isinstance(result, list) and "generated_text" in result[0]:
+                return result[0]["generated_text"]
+            else:
+                logger.error(f"Unexpected API response format: {result}")
+                return "Error: Unexpected API response format"
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error calling Hugging Face API (attempt {attempt+1}/{max_retries}): {e}")
+            time.sleep(2)
+
+    return "Error: Failed to process query after multiple attempts."
+
 
 
 def load_schema(schema_file="db_schema.json"):
@@ -75,36 +78,44 @@ def format_schema(schema):
     return "\n".join(schema_details)
 
 def extract_sql(response):
-    if "SQL:" in response:
-        return response.split("SQL:")[1].strip().split("\n")[0]
-    return response
+    sql_match = re.search(r"(SELECT|SHOW)\s.*", response, re.IGNORECASE)
+    return sql_match.group(0) if sql_match else "Error: Failed to extract SQL"
 
 
 def process_query(user_query, schema_file="db_schema.json"):
-    """
-    Process the user's natural language query into an SQL query using NLP model.
-    """
-    # Load and format the schema
     schema = load_schema(schema_file)
     if not schema:
-        return {
-            "user_query": user_query,
-            "structured_query": None,
-            "error": "Database schema not loaded."
-        }
-    
-    formatted_schema = format_schema(schema)
+        print("Schema loading failed!")
+        return {"user_query": user_query, "structured_query": None, "error": "Database schema not loaded."}
 
-    # Refined prompt with schema details
+    formatted_schema = format_schema(schema)
+    print(f"Formatted Schema:\n{formatted_schema}")  # Debug print
+
     prompt = (
-        f"You are a helpful assistant that generates mySQL queries from natural language descriptions.\n\n"
-        f"Here is the database schema:\n{formatted_schema}\n\n"
-        f"Question: {user_query}\nSQL:"
+        f"You are a MySQL query generator. Based on the given schema, generate a valid SQL query.\n"
+        f"Schema:\n{formatted_schema}\n\n"
+        f"Example:\n"
+        f"User Query: Show all users who registered last month.\n"
+        f"SQL: SELECT * FROM users WHERE registration_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH);\n\n"
+        f"User Query: {user_query}\nSQL:"
     )
 
+
     structured_query = call_huggingface_api(prompt)
+    print(f"Raw AI Response: {structured_query}")  # Debug print
+
     sql_query = extract_sql(structured_query)
-    return {
-        "user_query": user_query,
-        "structured_query": sql_query
-    }
+    print(f"Extracted SQL Query: {sql_query}")  # Debug print
+
+    if not sql_query or sql_query.lower() == "error: unexpected api response format":
+        return {"user_query": user_query, "structured_query": None, "error": "Failed to generate a valid SQL query."}
+
+    if not sql_query.lower().startswith(("select", "show")):
+        return {"user_query": user_query, "structured_query": None, "error": "Invalid query type generated."}
+
+    for table in schema.keys():
+        if table.lower() in sql_query.lower():
+            return {"user_query": user_query, "structured_query": sql_query}
+
+    return {"user_query": user_query, "structured_query": None, "error": "Generated query references unknown table."}
+
